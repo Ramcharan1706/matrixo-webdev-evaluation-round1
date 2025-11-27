@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Text Summarizer - Health & Wellness</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="nav">
+        <div class="container nav-container">
+            <div class="nav-logo">Health & Wellness</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="summarizer.html" class="active">Summarizer</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+            <div id="auth-section"></div>
+        </div>
+    </div>
+    <div class="summarizer-container container">
+        <h1 style="text-align: center; margin-bottom: 2rem; color: #4CAF50;">AI Health Text Summarizer</h1>
+        <div class="input-section">
+            <label for="health-text" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Paste your health article, doctor notes, or wellness content here:</label>
+            <textarea id="health-text" placeholder="Enter or paste your text here..."></textarea>
+        </div>
+        <div class="toggle-group">
+            <button class="toggle-btn active" data-length="short">Short</button>
+            <button class="toggle-btn" data-length="medium">Medium</button>
+            <button class="toggle-btn" data-length="detailed">Detailed</button>
+        </div>
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <button class="btn" id="summarize-btn">Summarize</button>
+        </div>
+        <div class="output-section">
+            <label for="summary-output" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Summary:</label>
+            <div id="summary-output" class="output-box">Your summarized text will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtns = document.querySelectorAll('.toggle-btn');
+            const summarizeBtn = document.getElementById('summarize-btn');
+            const outputBox = document.getElementById('summary-output');
+            toggleBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    toggleBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            summarizeBtn.addEventListener('click', async function() {
+                const inputText = document.getElementById('health-text').value.trim();
+                const selectedLength = document.querySelector('.toggle-btn.active').dataset.length;
+                if (inputText === '') {
+                    outputBox.textContent = 'Please enter some text to summarize.';
+                    return;
+                }
+                outputBox.textContent = 'Summarizing...';
+                let prompt = '';
+                switch (selectedLength) {
+                    case 'short':
+                        prompt = `Summarize the following health text in a short paragraph: ${inputText}`;
+                        break;
+                    case 'medium':
+                        prompt = `Provide a medium-length summary of the following health information: ${inputText}`;
+                        break;
+                    case 'detailed':
+                        prompt = `Give a detailed summary of the following health text, including key points and recommendations: ${inputText}`;
+                        break;
+                }
+                const apiKey = 'AIzaSyCLN_y3x6k7cgjVLsfgcjdsKo1L_efsb44';
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${apiKey}`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: prompt
+                                }]
+                            }]
+                        })
+                    });
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            throw new Error('Invalid API key or request. Please check your API key.');
+                        } else if (response.status === 403) {
+                            throw new Error('API key does not have permission to access this service.');
+                        } else if (response.status === 429) {
+                            throw new Error('Rate limit exceeded. Please try again later.');
+                        } else {
+                            throw new Error(`API request failed with status ${response.status}.`);
+                        }
+                    }
+                    const data = await response.json();
+                    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+                        throw new Error('Unexpected API response format.');
+                    }
+                    const summary = data.candidates[0].content.parts[0].text;
+                    outputBox.textContent = summary;
+                } catch (error) {
+                    console.error('Error:', error);
+                    outputBox.textContent = error.message || 'Error summarizing text. Please check your API key and try again.';
+                }
+            });
+        });
+    </script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        window.firebase = { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged };
+    </script>
+    <script src="auth.js"></script>
+</body>
+</html>
